@@ -80,12 +80,12 @@ cleanParamNaN(final_submission_set,"adep_lat",0)
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
 print("Training Tree 1...")
-# ModelName = "Stochastic Gradient Boosting Machine v31"
-OutputModelName = "SGBM_v31"
-# Tree1Spec = "n1000, dep10, s0.1, nSplit2, lr0.1, nIter20, valFrac0.1"
-# Tree2Spec = "n1000, dep10, s0.1, nSplit2, lr0.1, nIterNone, valFracN/A"
-Tree1 = GradientBoostingRegressor( n_estimators=1000, max_depth=10, subsample = 0.1,
-                        min_samples_split=2,learning_rate=0.1,loss="squared_error",
+# ModelName = "Stochastic Gradient Boosting Machine v32"
+OutputModelName = "SGBM_v32"
+# Tree1Spec = "n500, dep10, s0.2, nSplit2, lr0.01, nIter20, valFrac0.1"
+# Tree2Spec = "n500, dep10, s0.2, nSplit2, lr0.01, nIter20, valFrac0.1"
+Tree1 = GradientBoostingRegressor(n_estimators=500, max_depth=10, subsample = 0.1,
+                        min_samples_split=2,learning_rate=0.01,loss="squared_error",
                         n_iter_no_change = 20, validation_fraction = 0.1).fit(X, y)
 
 # Feed back on residual
@@ -99,7 +99,7 @@ print("Cross Val-ing Tree 1...")
 score = cross_val_score(Tree1, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
 print(OutputModelName + "Tree 1 cross val score is: ",score)
 # ETree cross val score is:  -4095.77 (v12) --> -3830.65 (v16) -- > -3729.56(n500) -->   -3729.67(n700) --> -3677.2 (v30)
-# GBM cross val score is:  -4933.8 (v30) --> -4955.54 (v30Abyss) -->  -3774.71(v30SGBM)
+# GBM Tree 1 cross val score is:  -4933.8 (v30) --> -4955.54 (v30Abyss) -->  -3774.71(v30SGBM) --> -3821.75(v31) --> -3743.12(v32)
 # [Optional] Interim Output of 1st Extra Trees
 X_submi = final_submission_set[featureParamSet1]
 print("Generating Final Submission Prediction from Tree 1")
@@ -125,8 +125,9 @@ featureParamSet1.append(featureParamSet2)
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
 print("Training Tree 2...")
-Tree2 = GradientBoostingRegressor( n_estimators=1000, max_depth=10, subsample = 0.1,
-                        min_samples_split=2,learning_rate=0.1,loss="squared_error").fit(X, y)
+Tree2 = GradientBoostingRegressor(n_estimators=500, max_depth=10, subsample = 0.1,
+                        min_samples_split=2,learning_rate=0.01,loss="squared_error",
+                        n_iter_no_change = 20, validation_fraction = 0.1).fit(X, y)
 
 # Final Output of 2nd Extra Trees
 X_submi = final_submission_set[featureParamSet1]
@@ -140,5 +141,5 @@ final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_"+OutputM
 print("Cross Val-ing Tree 2...")
 score = cross_val_score(Tree2, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
 print(OutputModelName + "Tree 2 cross val score is: ",score)
-# cross val score is: v12 -4095.77 --> n500: -3724.89 --> -3727.66(n700) --> -3676.51(v30)
-# GBM cross val score is:  - (v30) --> -4924.85(v30Abyss)
+# cross val score is: v12 -4095.77 --> n500: -3724.89 --> -3727.66(n700) --> -3676.51(v30) 
+# GBM Tree 2 cross val score is:  - (v30) --> -4924.85(v30Abyss) --> -4084.31(v31) --> -3722.58(v32)
