@@ -79,26 +79,31 @@ cleanParamNaN(final_submission_set,"adep_lat",0)
 # train_df = challenge_set[trainParam]
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
+# ModelName = "Stochastic Gradient Boosting Machine v31"
+OutputModelName = "ExTrees_drV2"
+# Tree1Spec = "n1000, dep10, s0.1, nSplit2, lr0.1, nIter20, valFrac0.1"
+# Tree2Spec = "n1000, dep10, s0.1, nSplit2, lr0.1, nIterNone, valFracN/A"
 print("Training Tree 1...")
-ExTreeReg1_v30 = ExtraTreesRegressor(n_estimators=500, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.2).fit(X, y)
+Tree1 = ExtraTreesRegressor(n_estimators=2048, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.25).fit(X, y)
+# , min_sample_leaf = 5,oob_score = True
 
 # Feed back on residual
 print("Generating Error Term from Tree 1")
-training_set_pred = ExTreeReg1_v30.predict(X)
+training_set_pred = Tree1.predict(X)
 challenge_set["tow_pred"] = training_set_pred
 challenge_set["tow_diff"] = challenge_set["tow_pred"].sub(challenge_set["tow"], axis=0)
 
 # [Optional] Quality Check of 1st Extra Trees
 print("Cross Val-ing Tree 1...")
-score = cross_val_score(ExTreeReg1_v30, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
-print("ExTreeReg1_v30 cross val score is: ",score)
-# cross val score is:  -4095.77 (v12) --> -3830.65 (v16) -- > -3729.56(n500) -->   -3729.67(n700) --> -3677.2 (v30)
+score = cross_val_score(Tree1, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
+print(OutputModelName + "Tree 1 cross val score is: ",score)
+# cross val score is:  -4095.77 (v12) --> -3830.65 (v16) -- > -3729.56(n500) -->   -3729.67(n700) --> -3677.2 (v30) --> -3765.04(drV2)
 # [Optional] Interim Output of 1st Extra Trees
 X = final_submission_set[featureParamSet1]
 print("Generating Final Submission Prediction from Tree 1")
-final_submission_set_pred = ExTreeReg1_v30.predict(X)
+final_submission_set_pred = Tree1.predict(X)
 final_submission_set["tow"] = final_submission_set_pred
-final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg1_v30.csv",index=False)
+final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_"+OutputModelName+"Tree1.csv",index=False)
 ### RMSE score on OSN Ranking = 
 
 # ---------------Version 16 (Section 3) ---------------
@@ -118,18 +123,18 @@ featureParamSet1.append(featureParamSet2)
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
 print("Training Tree 2...")
-ExTreeReg2_v30 = ExtraTreesRegressor(n_estimators=500, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.2).fit(X, y)
+Tree2 = ExtraTreesRegressor(n_estimators=2048, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.25).fit(X, y)
+
+# Final Output of 2nd Extra Trees
+X_submi = final_submission_set[featureParamSet1]
+print("Generating Final Submission Prediction from Tree 2")
+final_submission_set_pred = Tree2.predict(X_submi)
+final_submission_set["tow"] = final_submission_set_pred
+final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_"+OutputModelName+"Tree2.csv",index=False)
+### RMSE score on OSN Ranking = 
 
 # [Optional] Quality Check of 2nd Extra Trees
 print("Cross Val-ing Tree 2...")
-score = cross_val_score(ExTreeReg2_v30, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
+score = cross_val_score(Tree2, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
 print("ExTreeReg2_v30 cross val score is: ",score)
-# cross val score is: v12 -4095.77 --> n500: -3724.89 --> -3727.66(n700) --> -3676.51(v30)
-
-# Final Output of 2nd Extra Trees
-X = final_submission_set[featureParamSet1]
-print("Generating Final Submission Prediction from Tree 2")
-final_submission_set_pred = ExTreeReg2_v30.predict(X)
-final_submission_set["tow"] = final_submission_set_pred
-final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg2_v30.csv",index=False)
-### RMSE score on OSN Ranking = 
+# cross val score is: v12 -4095.77 --> n500: -3724.89 --> -3727.66(n700) --> -3676.51(v30)-->3668.52(drV1)
