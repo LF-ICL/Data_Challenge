@@ -27,7 +27,7 @@ def cleanParamNaN(df,param,newVal):
 featureParamSet1 = ["actype_meantow","acOp_meantow","flight_duration","flown_distance","taxiout_time","ICA","maxAlt","month","ades_lon","ades_lat","adep_lon","adep_lat"]
 featureParamSet2 = "des_dev"
 resultParam = "tow"
-# n_estimators...
+# n_estimators... I think 500 is enough (700 gave similar results)
 # The randomness of the first ExtraTree - so that the first tree is not overfitting and reflects the norm best to prepare for the representativeness of des_dev
 # Any training models can give priority to different params?
 # ---------- Inputs: Design of Experiments ----------
@@ -44,6 +44,10 @@ final_submission_set['acOp'] = final_submission_set[['aircraft_type', 'airline']
 final_submission_set.name = "final_submission_set"
 
 # ---------------Version 16 (Section 1)--------------- 
+# v30: use 0.2 for bootstrap sampling ratio
+# n700: 700estimators
+# n500: 500estimators
+# v17: bootstrap
 # V16: Branch from V12 but include more features: "month","ades_lon","ades_lat","adep_lon","adep_lat"
 # V12: airline/aircraft type categorical
 acOp_tow_dic = assignAverageToOneCat(challenge_set,"acOp","tow")
@@ -76,26 +80,25 @@ cleanParamNaN(final_submission_set,"adep_lat",0)
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
 print("Training Tree 1...")
-ExTreeReg1_v16 = ExtraTreesRegressor(n_estimators=100, random_state=0).fit(X, y)
+ExTreeReg1_v30 = ExtraTreesRegressor(n_estimators=500, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.2).fit(X, y)
 
 # Feed back on residual
 print("Generating Error Term from Tree 1")
-training_set_pred = ExTreeReg1_v16.predict(X)
+training_set_pred = ExTreeReg1_v30.predict(X)
 challenge_set["tow_pred"] = training_set_pred
 challenge_set["tow_diff"] = challenge_set["tow_pred"].sub(challenge_set["tow"], axis=0)
 
 # [Optional] Quality Check of 1st Extra Trees
 print("Cross Val-ing Tree 1...")
-score = cross_val_score(ExTreeReg1_v16, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
-print("ExTreeReg1_v16 cross val score is: ",score)
-# cross val score is:  -4095.77 (v12) --> -3830.65 (v16)
-
+score = cross_val_score(ExTreeReg1_v30, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
+print("ExTreeReg1_v30 cross val score is: ",score)
+# cross val score is:  -4095.77 (v12) --> -3830.65 (v16) -- > -3729.56(n500) -->   -3729.67(n700) --> -3677.2 (v30)
 # [Optional] Interim Output of 1st Extra Trees
 X = final_submission_set[featureParamSet1]
 print("Generating Final Submission Prediction from Tree 1")
-final_submission_set_pred = ExTreeReg1_v16.predict(X)
+final_submission_set_pred = ExTreeReg1_v30.predict(X)
 final_submission_set["tow"] = final_submission_set_pred
-final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg1_v16.csv",index=False)
+final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg1_v30.csv",index=False)
 ### RMSE score on OSN Ranking = 
 
 # ---------------Version 16 (Section 3) ---------------
@@ -115,18 +118,18 @@ featureParamSet1.append(featureParamSet2)
 X = challenge_set[featureParamSet1].to_numpy()
 y = challenge_set[resultParam].to_numpy()
 print("Training Tree 2...")
-ExTreeReg2_v16 = ExtraTreesRegressor(n_estimators=100, random_state=0).fit(X, y)
+ExTreeReg2_v30 = ExtraTreesRegressor(n_estimators=500, random_state=0, bootstrap = True, n_jobs=-1, max_samples=0.2).fit(X, y)
 
 # [Optional] Quality Check of 2nd Extra Trees
 print("Cross Val-ing Tree 2...")
-score = cross_val_score(ExTreeReg2_v16, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
-print("ExTreeReg2_v16 cross val score is: ",score)
-# cross val score is:  -4095.77
+score = cross_val_score(ExTreeReg2_v30, X, y, scoring='neg_root_mean_squared_error').mean().round(2)
+print("ExTreeReg2_v30 cross val score is: ",score)
+# cross val score is: v12 -4095.77 --> n500: -3724.89 --> -3727.66(n700) --> -3676.51(v30)
 
 # Final Output of 2nd Extra Trees
 X = final_submission_set[featureParamSet1]
 print("Generating Final Submission Prediction from Tree 2")
-final_submission_set_pred = ExTreeReg2_v16.predict(X)
+final_submission_set_pred = ExTreeReg2_v30.predict(X)
 final_submission_set["tow"] = final_submission_set_pred
-final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg2_v16.csv",index=False)
+final_submission_set[["flight_id","tow"]].to_csv("final_submission_set_ExTreeReg2_v30.csv",index=False)
 ### RMSE score on OSN Ranking = 
